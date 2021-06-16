@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import pytesseract
-from PIL import ImageGrab
 
 thres = 0.45
 nms_threshold = 0.2
@@ -15,7 +13,6 @@ classFile = 'coco.names'
 with open(classFile, 'rt') as f:
     classNames = f.read().rstrip('\n').split('\n')
 
-pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 configPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
 weightsPath = 'frozen_inference_graph.pb'
 
@@ -26,30 +23,13 @@ net.setInputMean((127.5, 127.5, 127.5))
 net.setInputSwapRB(True)
 
 
-def captureScreen(bbox=(300, 300, 1500, 1000)):
-    capScr = np.array(ImageGrab.grab(bbox))
-    capScr = cv2.cvtColor(capScr, cv2.COLOR_RGB2BGR)
-    return capScr
-
-
 while True:
-    timer = cv2.getTickCount()
     success, img = cap.read()
     img = cv2.resize(img, (0, 0), None, 0.7, 0.7)
     classIds, confs, bbox = net.detect(img, confThreshold=thres)
     bbox = list(bbox)
     confs = list(np.array(confs).reshape(1, -1)[0])
     confs = list(map(float, confs))
-
-    # DETECTING CHARACTERS
-    hImg, wImg, _ = img.shape
-    boxes = pytesseract.image_to_boxes(img)
-    for b in boxes.splitlines():
-        b = b.split(' ')
-        x, y, w, h = int(b[1]), int(b[2]), int(b[3]), int(b[4])
-        cv2.rectangle(img, (x, hImg - y), (w, hImg - h), (50, 50, 255), 2)
-        cv2.putText(img, b[0], (x, hImg - y + 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (50, 50, 255), 2)
-    fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
 
     # DETECTING OBJECTS
     indices = cv2.dnn.NMSBoxes(bbox, confs, thres, nms_threshold)
